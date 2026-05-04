@@ -6,208 +6,86 @@ import struct
 import zipfile
 import os
 import tempfile
+import threading
+import json
+import concurrent.futures
+import multiprocessing
 
-# Truck coordinates data (excluding iveco.sway as requested)
-TRUCKS = [
-    {
-        "TruckName": "DAF XF 105",
-        "InternalName": "daf.xf",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "DAF XF Euro 6",
-        "InternalName": "daf.xf_euro6",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "DAF 2021 XG",
-        "InternalName": "daf.2021",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "DAF XD",
-        "InternalName": "daf.xd",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Iveco Stralis",
-        "InternalName": "iveco.stralis",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Iveco Hi-Way",
-        "InternalName": "iveco.hiway",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "MAN TGX Euro 5",
-        "InternalName": "man.tgx",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "MAN TGX Euro 6",
-        "InternalName": "man.tgx_euro6",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "MAN TGX 2020",
-        "InternalName": "man.tgx_2020",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Mercedes Actros",
-        "InternalName": "mercedes.actros",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Mercedes New Actros",
-        "InternalName": "mercedes.actros2014",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Renault Magnum",
-        "InternalName": "renault.magnum",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Renault Premium",
-        "InternalName": "renault.premium",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Renault Range T",
-        "InternalName": "renault.t",
-        "Coordinates": {
-            "LeftDoor": {"X": 2924, "Y": 968, "Width": 180, "Height": 180},
-            "RightDoor": {"X": 998, "Y": 968, "Width": 180, "Height": 180},
-            "Hood": {"X": 1948, "Y": 1027, "Width": 200, "Height": 200}
-        }
-    },
-    {
-        "TruckName": "Scania R 2009",
-        "InternalName": "scania.r",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Scania Streamline",
-        "InternalName": "scania.streamline",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Scania R 2016",
-        "InternalName": "scania.r_2016",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Scania S 2016",
-        "InternalName": "scania.s_2016",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Volvo FH16 2009",
-        "InternalName": "volvo.fh16",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Volvo FH16 2012",
-        "InternalName": "volvo.fh16_2012",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Volvo FH 2021",
-        "InternalName": "volvo.fh_2021",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    },
-    {
-        "TruckName": "Volvo FH 2024",
-        "InternalName": "volvo.fh_2024",
-        "Coordinates": {
-            "LeftDoor": {"X": 2785, "Y": 2615, "Width": 240, "Height": 220},
-            "RightDoor": {"X": 1110, "Y": 2625, "Width": 240, "Height": 220},
-            "Hood": {"X": 1975, "Y": 2632, "Width": 135, "Height": 125}
-        }
-    }
-]
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_DLC_DIR = os.path.join(_SCRIPT_DIR, "dlc_valentine")
+JSON_FILE = os.path.join(_SCRIPT_DIR, "extracted_coords.json")
+
+# 1. Load dynamic JSON coords
+try:
+    with open(JSON_FILE, "r", encoding="utf-8") as f:
+        JSON_COORDS = json.load(f)
+except FileNotFoundError:
+    JSON_COORDS = {}
+except json.JSONDecodeError:
+    JSON_COORDS = {}
+
+def place_logo_in_box(canvas, logo_img, bbox, alignment):
+    """
+    Places logo within bounding box defined by {"x": x, "y": y, "w": w, "h": h}.
+    Scale: fits the bounding box scaling without breaking aspect ratio.
+    Alignment:
+      'bottom-left'  -> Left Door
+      'bottom-right' -> Right Door
+      'center'       -> Hood, Roof, C-Pillars, Side Skirts
+    """
+    x1 = bbox["x"]
+    y1 = bbox["y"]
+    box_w = bbox["w"]
+    box_h = bbox["h"]
+    x2 = x1 + box_w
+    y2 = y1 + box_h
+
+    orig_w, orig_h = logo_img.size
+
+    # Target height = 100% of bounding box height to maximize the Safe Zone usage
+    target_h = int(box_h * 1.0)
+    if target_h < 1:
+        return
+
+    # Scale logo maintaining aspect ratio
+    scale = target_h / orig_h
+    target_w = int(orig_w * scale)
+    
+    # If scaled width exceeds box width, shrink to fit width instead
+    if target_w > box_w:
+        target_w = box_w
+        scale = target_w / orig_w
+        target_h = int(orig_h * scale)
+
+    if target_w < 1 or target_h < 1:
+        return
+
+    resized = logo_img.resize((target_w, target_h), Image.LANCZOS)
+
+    if alignment == 'bottom-left':
+        # Near bottom-left corner
+        px = x1
+        py = y2 - target_h
+    elif alignment == 'bottom-right':
+        # Near bottom-right corner
+        px = x2 - target_w
+        py = y2 - target_h
+    elif alignment == 'center':
+        # Dead-center within the bounding box
+        px = x1 + (box_w - target_w) // 2
+        py = y1 + (box_h - target_h) // 2
+    else:
+        return
+
+    # Safety clamp
+    px = max(px, x1)
+    py = max(py, y1)
+    if px + target_w > x2:
+        px = x2 - target_w
+    if py + target_h > y2:
+        py = y2 - target_h
+
+    canvas.paste(resized, (px, py), mask=resized)
 
 def apply_concrete_alpha_fix(img):
     """
@@ -217,22 +95,12 @@ def apply_concrete_alpha_fix(img):
     """
     img = img.convert("RGBA")
     r, g, b, a = img.split()
-    # Map any alpha > 0 to 255, else 0
     a = a.point(lambda p: 255 if p > 0 else 0)
     return Image.merge("RGBA", (r, g, b, a))
 
 def extract_tobj_header(dlc_base_dir):
     """
     Dynamically extracts the TRUE binary header from an official SCS .tobj file.
-    
-    Strategy:
-    1. Walk the dlc directory to find any .tobj file.
-    2. Read its binary content and locate the b'/vehicle/' marker.
-    3. The 8 bytes immediately before the marker are: Int32 path length + 4-byte padding.
-    4. Everything before those 8 bytes is the authentic SCS header.
-    
-    This guarantees 100% binary compatibility with the Prism3D engine,
-    regardless of any future header format changes by SCS.
     """
     for root, dirs, files in os.walk(dlc_base_dir):
         for fname in files:
@@ -242,23 +110,13 @@ def extract_tobj_header(dlc_base_dir):
                     data = f.read()
                 marker_idx = data.find(b'/vehicle/')
                 if marker_idx != -1 and marker_idx >= 8:
-                    # Header = everything before the 8-byte (length + padding) block
                     header = data[:marker_idx - 8]
                     return header
-    raise FileNotFoundError(
-        f"Could not find any valid .tobj file with '/vehicle/' path in: {dlc_base_dir}"
-    )
+    raise FileNotFoundError(f"Could not find any valid .tobj file with '/vehicle/' path in: {dlc_base_dir}")
 
-# ---------------------------------------------------------------------------
-# Extract the TRUE SCS header once at module load time from the official DLC.
-# The script directory is assumed to contain the extracted dlc_valentine folder.
-# ---------------------------------------------------------------------------
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_DLC_DIR = os.path.join(_SCRIPT_DIR, "dlc_valentine")
 try:
     _TRUE_TOBJ_HEADER = extract_tobj_header(_DLC_DIR)
 except FileNotFoundError:
-    # Fallback: if the DLC folder is missing, use the known-good 40-byte header
     _TRUE_TOBJ_HEADER = (
         b'\x01\x0A\xB1\x70'
         b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -270,77 +128,168 @@ except FileNotFoundError:
 def write_tobj(tobj_path, target_path_str):
     """
     Generates a valid ETS2 binary TOBJ file mapping to the texture path.
-    Uses the TRUE header extracted from an official SCS DLC file (40 bytes).
-    The path string MUST have a leading slash (e.g. "/vehicle/truck/...").
-    
-    Binary layout:
-      [TRUE_HEADER]  (40 bytes, extracted from official DLC)
-      [Int32]        path string length (little-endian)
-      [4 bytes]      padding (zeros)
-      [ASCII string] the texture path
     """
     path_bytes = target_path_str.encode('ascii')
-    
     with open(tobj_path, 'wb') as f:
         f.write(_TRUE_TOBJ_HEADER)
-        # Int32 string length (little-endian)
         f.write(struct.pack('<I', len(path_bytes)))
-        # 4 bytes padding
         f.write(b'\x00\x00\x00\x00')
-        # The ASCII path string immediately follows
         f.write(path_bytes)
 
-def generate_sii_content(truck_internal_name):
+def generate_base_sii_content(truck_internal_name, tex_name):
     """
-    Generates the dynamic .sii definition file content for a specific truck.
+    Generates the dynamic base .sii definition file content for a specific truck.
+    Points to the first cabin's .tobj as the default texture.
     """
     content = "SiiNunit\n{\n"
     content += f"accessory_paint_job_data : unisk.{truck_internal_name}.paint_job\n"
     content += "{\n"
-    content += '    name: "Universal Logo Skin"\n'
+    content += '    name: "Custom Logo Skin"\n'
     content += "    price: 1000\n"
     content += "    unlock: 1\n"
     content += '    icon: "paintjob_default"\n'
     content += "    airbrush: true\n"
     content += "    base_color: (1.0, 1.0, 1.0)\n"
-    content += '    paint_job_mask: "/vehicle/truck/upgrade/paintjob/universal/universal_skin.tobj"\n'
+    content += f'    paint_job_mask: "/vehicle/truck/upgrade/paintjob/my_mod/{tex_name}.tobj"\n'
     content += "}\n}\n"
     return content
+
+def generate_override_sii_content(truck_internal_name, cabin_internal_name, tex_name):
+    """
+    Generates the accessory override .sii file specific to a cabin.
+    """
+    content = "SiiNunit\n{\n"
+    content += "simple_paint_job_data : .ovr0\n"
+    content += "{\n"
+    content += f'    paint_job_mask: "/vehicle/truck/upgrade/paintjob/my_mod/{tex_name}.tobj"\n'
+    content += f'    suitable_for[]: "{cabin_internal_name}.{truck_internal_name}.cabin"\n'
+    content += "}\n}\n"
+    return content
+
+def generate_cabin_assets(args):
+    """
+    Multiprocessing worker function that builds the 4096x4096 texture,
+    applies Wand compression, and generates the tobj for a single cabin.
+    """
+    truck_internal_name, cabin_internal_name, coords, ui_states, logo_path, tmp_dir = args
+    do_doors, do_hood, do_roof, do_cpillar_upper, do_cpillar_lower = ui_states
+    
+    tex_name = f"{truck_internal_name}_{cabin_internal_name}"
+    temp_png = os.path.join(tmp_dir, f"{tex_name}.png")
+    temp_dds = os.path.join(tmp_dir, f"{tex_name}.dds")
+    temp_tobj = os.path.join(tmp_dir, f"{tex_name}.tobj")
+    
+    logo_img = Image.open(logo_path).convert("RGBA")
+    canvas = Image.new("RGBA", (4096, 4096), (0, 0, 0, 0))
+
+    if do_doors:
+        if "left_door" in coords:
+            place_logo_in_box(canvas, logo_img, coords["left_door"], 'bottom-left')
+        if "right_door" in coords:
+            place_logo_in_box(canvas, logo_img, coords["right_door"], 'bottom-right')
+            
+    if do_hood and "hood" in coords:
+        place_logo_in_box(canvas, logo_img, coords["hood"], 'center')
+
+    if do_roof and "roof" in coords:
+        place_logo_in_box(canvas, logo_img, coords["roof"], 'center')
+
+    if do_cpillar_upper:
+        if "left_c_pillar_upper" in coords:
+            place_logo_in_box(canvas, logo_img, coords["left_c_pillar_upper"], 'center')
+        if "right_c_pillar_upper" in coords:
+            place_logo_in_box(canvas, logo_img, coords["right_c_pillar_upper"], 'center')
+
+    if do_cpillar_lower:
+        if "left_c_pillar_lower" in coords:
+            place_logo_in_box(canvas, logo_img, coords["left_c_pillar_lower"], 'center')
+        if "right_c_pillar_lower" in coords:
+            place_logo_in_box(canvas, logo_img, coords["right_c_pillar_lower"], 'center')
+
+    final_texture = apply_concrete_alpha_fix(canvas)
+    final_texture.save(temp_png, format="PNG")
+
+    with WandImage(filename=temp_png) as wand_img:
+        wand_img.compression = 'dxt5'
+        wand_img.save(filename=temp_dds)
+
+    tobj_in_game_path = f"/vehicle/truck/upgrade/paintjob/my_mod/{tex_name}.dds"
+    write_tobj(temp_tobj, tobj_in_game_path)
+
+    return {
+        'truck': truck_internal_name,
+        'cabin': cabin_internal_name,
+        'tex_name': tex_name,
+        'dds_path': temp_dds,
+        'tobj_path': temp_tobj,
+        'png_path': temp_png
+    }
+
 
 class SkinGeneratorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("ETS2 Universal Skin Generator")
-        self.root.geometry("450x250")
+        self.root.geometry("450x420")
         
-        # Variables
         self.logo_path = tk.StringVar()
-        self.generate_all = tk.BooleanVar(value=True)
+        
+        self.var_all = tk.BooleanVar(value=True)
+        self.var_doors = tk.BooleanVar(value=True)
+        self.var_hood = tk.BooleanVar(value=True)
+        self.var_roof = tk.BooleanVar(value=True)
+        self.var_cpillar_upper = tk.BooleanVar(value=True)
+        self.var_cpillar_lower = tk.BooleanVar(value=True)
+        
+        self.part_vars = [
+            self.var_doors, self.var_hood, self.var_roof, 
+            self.var_cpillar_upper, self.var_cpillar_lower
+        ]
         
         self.create_widgets()
+        
+        if not JSON_COORDS:
+            messagebox.showerror("Error", "Could not load extracted_coords.json!\nPlease ensure the coordinate_hunter.py script has been run.")
 
     def create_widgets(self):
-        # Frame
         frame = ttk.Frame(self.root, padding=20)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        # Title
         title_label = ttk.Label(frame, text="ETS2 Mod Tool", font=("Helvetica", 16, "bold"))
         title_label.pack(pady=(0, 10))
 
-        # Logo Selection
         logo_frame = ttk.Frame(frame)
         logo_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(logo_frame, text="Logo (.png):").pack(side=tk.LEFT)
-        ttk.Entry(logo_frame, textvariable=self.logo_path, state="readonly", width=35).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(logo_frame, textvariable=self.logo_path, state="readonly", width=30).pack(side=tk.LEFT, padx=5)
         ttk.Button(logo_frame, text="Browse", command=self.browse_logo).pack(side=tk.LEFT)
 
-        # Options
-        ttk.Checkbutton(frame, text="Generate for ALL Trucks", variable=self.generate_all).pack(pady=10)
+        # New UI Section (Part Selection Checkboxes)
+        parts_frame = ttk.LabelFrame(frame, text="Parts to Paint", padding=10)
+        parts_frame.pack(fill=tk.X, pady=15)
+        
+        ttk.Checkbutton(parts_frame, text="All Parts", variable=self.var_all, command=self.toggle_all).pack(anchor=tk.W)
+        ttk.Separator(parts_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+        ttk.Checkbutton(parts_frame, text="Doors (Left & Right)", variable=self.var_doors, command=self.check_part_state).pack(anchor=tk.W)
+        ttk.Checkbutton(parts_frame, text="Hood", variable=self.var_hood, command=self.check_part_state).pack(anchor=tk.W)
+        ttk.Checkbutton(parts_frame, text="Roof", variable=self.var_roof, command=self.check_part_state).pack(anchor=tk.W)
+        ttk.Checkbutton(parts_frame, text="Upper C-Pillars", variable=self.var_cpillar_upper, command=self.check_part_state).pack(anchor=tk.W)
+        ttk.Checkbutton(parts_frame, text="Lower Side Skirts", variable=self.var_cpillar_lower, command=self.check_part_state).pack(anchor=tk.W)
 
-        # Generate Button
-        ttk.Button(frame, text="Create Mod (.scs)", command=self.create_mod).pack(pady=20)
+        self.generate_btn = ttk.Button(frame, text="Create Mod (.scs)", command=self.create_mod)
+        self.generate_btn.pack(pady=10)
+
+    def toggle_all(self):
+        state = self.var_all.get()
+        for var in self.part_vars:
+            var.set(state)
+
+    def check_part_state(self):
+        if all(var.get() for var in self.part_vars):
+            self.var_all.set(True)
+        else:
+            self.var_all.set(False)
 
     def browse_logo(self):
         filepath = filedialog.askopenfilename(
@@ -351,6 +300,10 @@ class SkinGeneratorApp:
             self.logo_path.set(filepath)
 
     def create_mod(self):
+        if not JSON_COORDS:
+            messagebox.showerror("Error", "Missing extracted_coords.json! Cannot build mod.")
+            return
+
         logo_file = self.logo_path.get()
         if not logo_file:
             messagebox.showerror("Error", "Please select a logo PNG file.")
@@ -364,80 +317,127 @@ class SkinGeneratorApp:
         if not save_path:
             return
 
+        self.generate_btn.config(state=tk.DISABLED)
+        
+        self.progress_win = tk.Toplevel(self.root)
+        self.progress_win.title("Generating Mod...")
+        self.progress_win.geometry("350x120")
+        self.progress_win.transient(self.root)
+        self.progress_win.grab_set()
+        
+        ttk.Label(self.progress_win, text="Processing textures on all CPU cores...").pack(pady=(15, 5))
+        
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(self.progress_win, variable=self.progress_var, maximum=100)
+        self.progress_bar.pack(fill=tk.X, padx=20, pady=5)
+        
+        self.status_var = tk.StringVar(value="Starting...")
+        ttk.Label(self.progress_win, textvariable=self.status_var).pack()
+
+        # The thread keeps the GUI completely responsive during execution
+        thread = threading.Thread(target=self._run_process_mod, args=(logo_file, save_path))
+        thread.daemon = True
+        thread.start()
+
+    def _run_process_mod(self, logo_file, save_path):
         try:
             self.process_mod(logo_file, save_path)
-            messagebox.showinfo("Success", f"Mod successfully created at:\n{save_path}")
+            self.root.after(0, self._on_process_success, save_path)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to generate mod:\n{str(e)}")
+            self.root.after(0, self._on_process_error, str(e))
+
+    def _on_process_success(self, save_path):
+        self.progress_win.destroy()
+        self.generate_btn.config(state=tk.NORMAL)
+        messagebox.showinfo("Success", f"Mod successfully created at:\n{save_path}")
+
+    def _on_process_error(self, error_msg):
+        self.progress_win.destroy()
+        self.generate_btn.config(state=tk.NORMAL)
+        messagebox.showerror("Error", f"Failed to generate mod:\n{error_msg}")
 
     def process_mod(self, logo_path, out_scs_path):
-        # Create a temporary directory for intermediate files
+        ui_states = (
+            self.var_doors.get(),
+            self.var_hood.get(),
+            self.var_roof.get(),
+            self.var_cpillar_upper.get(),
+            self.var_cpillar_lower.get()
+        )
+        
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # -------------------------------------------------------
-            # STEP 1: Use Pillow to composite logos onto a 4096x4096 canvas
-            # -------------------------------------------------------
-            canvas = Image.new("RGBA", (4096, 4096), (0, 0, 0, 0))
-            logo_img = Image.open(logo_path).convert("RGBA")
+            # Count total cabins to process for the progress bar
+            total_cabins = sum(len(cabins) for cabins in JSON_COORDS.values())
+            if total_cabins == 0:
+                raise ValueError("JSON file contains no truck/cabin data!")
 
-            # Paste logo at every coordinate region for every truck
-            for truck in TRUCKS:
-                coords = truck["Coordinates"]
-                for part in ["LeftDoor", "RightDoor", "Hood"]:
-                    if part in coords:
-                        cd = coords[part]
-                        # Resize logo using Lanczos for high quality
-                        resized_logo = logo_img.resize((cd["Width"], cd["Height"]), Image.LANCZOS)
-                        # Paste with alpha masking to preserve transparency
-                        canvas.paste(resized_logo, (cd["X"], cd["Y"]), mask=resized_logo)
+            tasks = []
+            for truck_internal_name, cabins in JSON_COORDS.items():
+                for cabin_internal_name, coords in cabins.items():
+                    tasks.append((truck_internal_name, cabin_internal_name, coords, ui_states, logo_path, tmp_dir))
 
-            # -------------------------------------------------------
-            # STEP 2: Apply Concrete Alpha Fix (Pillow)
-            # Any pixel with A > 0 gets forced to A = 255
-            # -------------------------------------------------------
-            final_texture = apply_concrete_alpha_fix(canvas)
+            cabin_count = 0
+            processed_trucks = set()
 
-            # -------------------------------------------------------
-            # STEP 3: Save intermediate PNG, then convert to DXT5 DDS via Wand
-            # -------------------------------------------------------
-            temp_png = os.path.join(tmp_dir, "universal_skin.png")
-            temp_dds = os.path.join(tmp_dir, "universal_skin.dds")
-            final_texture.save(temp_png, format="PNG")
-
-            # Use Wand (ImageMagick) to produce a proper DXT5-compressed DDS
-            with WandImage(filename=temp_png) as wand_img:
-                wand_img.compression = 'dxt5'
-                wand_img.save(filename=temp_dds)
-
-            # Read the final DDS bytes
-            with open(temp_dds, 'rb') as f:
-                dds_bytes = f.read()
-
-            # -------------------------------------------------------
-            # STEP 4: Generate the binary TOBJ file
-            # Path MUST have a leading slash for the Prism3D engine
-            # -------------------------------------------------------
-            temp_tobj = os.path.join(tmp_dir, "universal_skin.tobj")
-            tobj_in_game_path = "/vehicle/truck/upgrade/paintjob/universal/universal_skin.dds"
-            write_tobj(temp_tobj, tobj_in_game_path)
-            with open(temp_tobj, 'rb') as f:
-                tobj_bytes = f.read()
-
-            # -------------------------------------------------------
-            # STEP 5: Package everything into the .scs (ZIP_STORED) archive
-            # -------------------------------------------------------
             with zipfile.ZipFile(out_scs_path, 'w', zipfile.ZIP_STORED) as scs:
-                # Write the universal texture assets
-                scs.writestr("vehicle/truck/upgrade/paintjob/universal/universal_skin.dds", dds_bytes)
-                scs.writestr("vehicle/truck/upgrade/paintjob/universal/universal_skin.tobj", tobj_bytes)
+                
+                # Multiprocessing significantly speeds up the Wand DXT5 compression bounds.
+                # max_workers caps threads to available CPUs, ensuring efficient CPU load mapping.
+                max_workers = max(1, multiprocessing.cpu_count() - 1)
+                
+                with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                    futures = {executor.submit(generate_cabin_assets, task): task for task in tasks}
+                    
+                    for future in concurrent.futures.as_completed(futures):
+                        result = future.result()
+                        
+                        truck = result['truck']
+                        cabin = result['cabin']
+                        tex_name = result['tex_name']
+                        
+                        # Read generated files from tmp_dir
+                        with open(result['dds_path'], 'rb') as f:
+                            dds_bytes = f.read()
+                        with open(result['tobj_path'], 'rb') as f:
+                            tobj_bytes = f.read()
+                            
+                        # Clean up temp files immediately to free up disk space during parallel runs
+                        try:
+                            os.remove(result['dds_path'])
+                            os.remove(result['tobj_path'])
+                            os.remove(result['png_path'])
+                        except OSError:
+                            pass
 
-                # Write a .sii definition for every truck
-                for truck in TRUCKS:
-                    internal_name = truck["InternalName"]
-                    sii_content = generate_sii_content(internal_name)
-                    sii_path = f"def/vehicle/truck/{internal_name}/paint_job/universal_skin.sii"
-                    scs.writestr(sii_path, sii_content.encode('utf-8'))
+                        # Write the individual assets to the .scs
+                        scs.writestr(f"vehicle/truck/upgrade/paintjob/my_mod/{tex_name}.dds", dds_bytes)
+                        scs.writestr(f"vehicle/truck/upgrade/paintjob/my_mod/{tex_name}.tobj", tobj_bytes)
+
+                        # Write the specific .sii definitions
+                        # Create the Base Paintjob (universal_skin.sii) using the FIRST cabin's texture
+                        if truck not in processed_trucks:
+                            base_sii_content = generate_base_sii_content(truck, tex_name)
+                            base_sii_path = f"def/vehicle/truck/{truck}/paint_job/universal_skin.sii"
+                            scs.writestr(base_sii_path, base_sii_content.encode('utf-8'))
+                            processed_trucks.add(truck)
+
+                        # Create the Accessory Override (.sii) specifically for this cabin
+                        override_sii_content = generate_override_sii_content(truck, cabin, tex_name)
+                        override_sii_path = f"def/vehicle/truck/{truck}/paint_job/unisk/{cabin}.sii"
+                        scs.writestr(override_sii_path, override_sii_content.encode('utf-8'))
+                        
+                        cabin_count += 1
+                        
+                        # Use .after to safely communicate back to the Main Tkinter Thread
+                        def update_status(t=truck, c=cabin, i=cabin_count):
+                            self.status_var.set(f"Processed: {t} ({c}) - {i}/{total_cabins}")
+                            self.progress_var.set((i / total_cabins) * 100)
+                        self.root.after(0, update_status)
+
 
 if __name__ == "__main__":
+    # Required for Windows multiprocessing to work correctly!
+    multiprocessing.freeze_support()
     root = tk.Tk()
     app = SkinGeneratorApp(root)
     root.mainloop()
