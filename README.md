@@ -84,7 +84,6 @@ V0.2 ile hizalama hataları büyük ölçüde çözülse de, yeni mimari bazı o
 | **Kabin İsimleri / `suitable_for` Sorunu** | 🔴 Kritik | Mercedes Actros başta olmak üzere oyun bazı override dosyalarını umursamıyor. Def dosyalarındaki kabin internal isimleri eşleşmiyor olabilir. |
 | **İşlemci (CPU) Darboğazı** | ⚠️ Uyarı | Multiprocessing çok agresif çalışıyor. İşlem sırasında bilgisayar kullanılamaz hale geliyor. |
 | **Ters Çıkan Çatılar (Rooftop)** | ⚠️ Uyarı | Şablon farklılıklarından dolayı bazı tırlarda tavana basılan logolar ters/yan çıkıyor. |
-| **Iveco S-Way** | 🚫 | Mod listede hiç görünmüyor (Internal name hatası devam ediyor). |
 
 ---
 
@@ -98,14 +97,6 @@ Bir sonraki geliştirme aşamasında aşağıdaki sorunlara odaklanılacaktır:
 4. **Döndürme (Rotation) Desteği:** Ters çıkan çatılar için koordinatlara özel açı parametresi eklenecek.
 5. **Dorse Entegrasyonu:** Sistem dorseler için de aktif edilecektir.
 
----
-
-## 🚀 Kullanım Talimatları
-
-1. **Gereksinimler:** Bilgisayarınızda [ImageMagick](https://imagemagick.org/script/download.php#windows) kurulu olmalıdır (Kurulumda "Add to PATH" ve "Install legacy utilities" kutucuklarını işaretleyin).
-2. **Kütüphane Kurulumu:** 
-   ```bash
-   pip install Wand Pillow
 ---
 
 ## 🚀 Kullanım Talimatları
