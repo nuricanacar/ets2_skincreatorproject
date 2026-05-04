@@ -1,4 +1,4 @@
-# 🚛 ETS2 Skin Tool - V0.1 Beta
+# 🚛 ETS2 Skin Tool - V0.1 Beta (ESKİ SÜRÜM)
 
 Bu proje, Euro Truck Simulator 2 için otomatikleştirilmiş, tüm tırlara uyumlu ve "beton gibi" net (solid) logolara sahip boyama paketleri üretmek amacıyla geliştirilen bir Python aracıdır. **V0.1 Beta** sürümü, "Pembe Tır" hatasının tamamen çözüldüğü ve resmi SCS DLC standartlarına geçildiği ilk kararlı sürümdür.
 
@@ -53,6 +53,59 @@ Bir sonraki geliştirme aşamasında aşağıdaki kronik sorunlara odaklanılaca
 3.  **Iveco S-Way Aktivasyonu:** Tanımlama dosyalarındaki eksiklikler giderilecektir.
 4.  **Dorse Entegrasyonu:** Sistem dorseler için de aktif edilecektir.
 
+
+---
+# 🚛 ETS2 Skin Tool - V0.2 Beta (Mevcut Sürüm)
+
+## 📜 Sürüm Geçmişi (Changelog)
+
+### 🚀 V0.2 Beta (Güncel Sürüm)
+Bu sürümle birlikte otomasyon, arayüz ve performans konularında devasa adımlar atılmış, V0.1'deki "hayalet logo" ve hizalama sorunları çözülmüştür.
+* **Kabin Bağımsız Doku Mimarisi:** V0.1'deki Universal Skin (tek resim) mantığı çöpe atıldı. Artık her tırın her kabini için ayrı `.dds`, `.tobj` ve override `.sii` dosyaları üretiliyor. Çamurluklardaki hayalet logolar ve üst üste binme sorunları tarihe karıştı.
+* **Dinamik Arayüz (GUI) ve Parça Seçimi:** Arayüze "Boyanacak Parçalar" (Kapılar, Kaput, Çatı vb.) bölümü eklendi. Sadece seçilen parçalara logo basılabiliyor.
+* **Çok Çekirdekli İşleme (Multiprocessing):** Onlarca 4K çözünürlüklü dokunun oluşturulma süresini dakikalardan kısa sürelere indirmek için sistem bilgisayarın tüm işlemci çekirdeklerini kullanacak şekilde güncellendi.
+* **Gelişmiş JSON Koordinat Sistemi:** Sisteme dışarıdan beslenen dinamik JSON veri yapısı entegre edildi. Logolar artık sündürülmeden, oranları korunarak şablonlara %100 oturuyor.
+
+### 🚧 V0.1 Beta (Eski Sürüm)
+"Pembe Tır" hatasının tamamen çözüldüğü ve resmi SCS DLC standartlarına geçildiği ilk kararlı sürümdür.
+* **Resmi DLC Mimarisi (Reverse Engineering):** Resmi SCS DLC'leri analiz edilerek Universal Paintjob sistemine geçildi.
+* **Dinamik TOBJ Header Çözümü (40-Byte Fix):** Resmi bir DLC dosyasını tarayarak gerçek 40-baytlık SCS başlığı dinamik olarak kopyalandı. "Failed reading map name" hatası çözüldü.
+* **DDS & ImageMagick (Wand) Entegrasyonu:** Prism3D uyumlu DXT5 sıkıştırması ve logoların opak durması için Alpha Fix (Alpha > 0 => 255) sisteme dahil edildi.
+
+---
+
+## 🛠️ Mevcut Durum ve Bilinen Hatalar (Bugs)
+
+V0.2 ile hizalama hataları büyük ölçüde çözülse de, yeni mimari bazı optimizasyon ve uyumluluk sorunlarını beraberinde getirmiştir.
+
+| Hata / Sorun | Durum | Teknik Not |
+| :--- | :---: | :--- |
+| **Devasa Mod Boyutu (1.4 GB)** | 🔴 Kritik | Her kabin için ayrı 4K DXT5 DDS üretilmesi dosya boyutunu inanılmaz şişiriyor. Kırpma (crop) veya ortak doku referanslaması şart. |
+| **Kabin İsimleri / `suitable_for` Sorunu** | 🔴 Kritik | Mercedes Actros başta olmak üzere oyun bazı override dosyalarını umursamıyor. Def dosyalarındaki kabin internal isimleri eşleşmiyor olabilir. |
+| **İşlemci (CPU) Darboğazı** | ⚠️ Uyarı | Multiprocessing çok agresif çalışıyor. İşlem sırasında bilgisayar kullanılamaz hale geliyor. |
+| **Ters Çıkan Çatılar (Rooftop)** | ⚠️ Uyarı | Şablon farklılıklarından dolayı bazı tırlarda tavana basılan logolar ters/yan çıkıyor. |
+| **Iveco S-Way** | 🚫 | Mod listede hiç görünmüyor (Internal name hatası devam ediyor). |
+
+---
+
+## 📅 V0.3 Yol Haritası (Gelecek Planları)
+
+Bir sonraki geliştirme aşamasında aşağıdaki sorunlara odaklanılacaktır:
+
+1. **Mod Boyutu Optimizasyonu:** 1.4 GB'lık boyutu düşürmek için şeffaf alanların üretilmesini engelleyecek yeni bir DDS/Maskeleme yapısı kurulacak.
+2. **Def ve Kabin Uyumluluğu:** `.sii` dosyalarındaki `suitable_for` tanımları resmi SCS yapısıyla birebir eşleştirilecek.
+3. **CPU Sınırlandırıcısı:** Arayüze "Kullanılacak Çekirdek Sayısı" ayarı eklenecek.
+4. **Döndürme (Rotation) Desteği:** Ters çıkan çatılar için koordinatlara özel açı parametresi eklenecek.
+5. **Dorse Entegrasyonu:** Sistem dorseler için de aktif edilecektir.
+
+---
+
+## 🚀 Kullanım Talimatları
+
+1. **Gereksinimler:** Bilgisayarınızda [ImageMagick](https://imagemagick.org/script/download.php#windows) kurulu olmalıdır (Kurulumda "Add to PATH" ve "Install legacy utilities" kutucuklarını işaretleyin).
+2. **Kütüphane Kurulumu:** 
+   ```bash
+   pip install Wand Pillow
 ---
 
 ## 🚀 Kullanım Talimatları
